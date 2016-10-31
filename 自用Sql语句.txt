@@ -1,0 +1,94 @@
+##"积分导入流水","业务发生时间","积分供应商","导入积分","积分兑换比例","兑换手续费率",
+#"结算金额","平台利润","结算状态","结算日期","导出状态","导出时间"
+SELECT pel.EXCHANGE_LOG_ID "积分导入流水",
+			 DATE_FORMAT(pel.OP_DATE,'%Y-%m-%d %T') "业务发生时间",
+			 pel.PROVIDER_ID "积分供应商ID",
+			 pp.PROVIDER_NAME "积分供应商",
+			 pel.PROVIDER_POINT_NUM "导入积分",
+		   ROUND(pp.PROVIDER_POINT_RATIO,2) "积分兑换比例",
+			 ROUND(pp.PROVIDER_POINT_FEE,2) "兑换手续费率",
+			 CONCAT(ROUND(pel.PROVIDER_POINT_NUM/pp.PROVIDER_POINT_RATIO,2),'元') "结算金额",
+			 CONCAT(ROUND(pel.PROVIDER_POINT_NUM/pp.PROVIDER_POINT_RATIO*pp.PROVIDER_POINT_FEE/100,2),'元') "平台利润",
+			 IF(pel.CHECK_STATE,'已导出','未导出') "结算状态",
+			 DATE_FORMAT(pel.CHECK_DATE,'%Y-%m-%d %T') "结算日期",
+			 IF(pel.EXP_STATE,'已导出','已导出') "导出状态",
+			 DATE_FORMAT(pel.EXP_DATE,'%Y-%m-%d %T') "导出时间"
+FROM pc_exchange_log pel
+LEFT JOIN pc_provider pp ON
+pel.PROVIDER_ID=pp.PROVIDER_ID
+
+SELECT pel.EXCHANGE_LOG_ID id,
+			 DATE_FORMAT(pel.OP_DATE,'%Y-%m-%d %T') impDate,
+			 pp.PROVIDER_NAME providerName,
+			 pel.PROVIDER_POINT_NUM impPoint,
+		   ROUND(pp.PROVIDER_POINT_RATIO,2) rate,
+			 ROUND(pp.PROVIDER_POINT_FEE,2) fee,
+			 CONCAT(ROUND(pel.PROVIDER_POINT_NUM/pp.PROVIDER_POINT_RATIO,2),'元') amount,
+			 CONCAT(ROUND(pel.PROVIDER_POINT_NUM/pp.PROVIDER_POINT_RATIO*pp.PROVIDER_POINT_FEE/100,2),'元') profit,
+			 IF(pel.CHECK_STATE=1,'已导出','未导出') exchangeState,
+			 DATE_FORMAT(pel.CHECK_DATE,'%Y-%m-%d %T') exchangeDate,
+			 IF(pel.EXP_STATE=1,'已导出','已导出') exportState,
+			 DATE_FORMAT(pel.EXP_DATE,'%Y-%m-%d %T') exportDate
+FROM pc_exchange_log pel
+LEFT JOIN pc_provider pp ON
+pel.PROVIDER_ID=pp.PROVIDER_ID
+
+
+<------select authorities by userId by Cat------>
+<------------------关联4张表-------------------->
+<----------------子查询的方式------------------->
+SELECT
+				p.id,
+				p.display_name,
+				s.id AS sid,
+				s.`display_name` AS sname
+			FROM
+				`authorities` p,
+				`authorities` s
+			WHERE
+				p.`id` = s.`parent_authority_id`
+			AND s.id IN (
+				SELECT
+					`authority_id`
+				FROM
+					`role_authority`
+				WHERE
+					role_id = (
+						SELECT
+							r.id
+						FROM
+							users u
+						LEFT JOIN `roles` r ON u.`role_id` = r.`id`
+						WHERE
+							u.`id` = #{id}
+					)
+			)
+
+
+<------select authorities by userId by Jack------>
+<-------------------关联4张表-------------------->
+<---------------关联查询的方式------------------->
+
+SELECT
+	ra.authority_id,
+	a.display_name,
+	a.parent_authority_id,
+	aa.display_name AS "p_display_name"
+FROM
+	users u
+LEFT OUTER JOIN role_authority ra ON u.role_id = ra.role_id
+LEFT OUTER JOIN authorities a ON ra.authority_id = a.id
+LEFT OUTER JOIN authorities aa ON a.parent_authority_id = aa.id
+WHERE
+	aa.parent_authority_id IS NULL
+AND u.id = 22
+
+
+<------------------------------------------------>
+SELECT r.id, r.description, r.enabled, r.`name`,
+			 ra.authority_id,
+			 a.display_name
+FROM roles r
+LEFT OUTER JOIN role_authority ra ON r.id=ra.role_id
+LEFT OUTER JOIN authorities a ON ra.authority_id=a.id 
+WHERE r.id=1
